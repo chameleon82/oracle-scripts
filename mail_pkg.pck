@@ -66,8 +66,8 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
                              ,'text/html'
                             );                            
 
-     vClob := '<HTML><TITLE>Clob Attachment Example</TITLE><BODY><b>This</b> is clob attachment example</BODY></HTML>';
      -- Add attachment from CLOB    
+     vClob := '<HTML><TITLE>Clob Attachment Example</TITLE><BODY><b>This</b> is clob attachment example</BODY></HTML>';     
      MAIL_PKG.ADD_ATTACHMENT( vClob
                              ,'ClobResult.htm'
                              ,'text/html'
