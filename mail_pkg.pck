@@ -3,7 +3,8 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
 -- Name         : MAIL_PKG
 -- Author       : Nekrasov Alexander
 -- Description  : Mail package, send email with attachments
--- Url          : http://www.sql.ru/forum/actualthread.aspx?tid=729238
+-- Url          : https://github.com/chameleon82/oracle-scripts
+-- Forum        : http://www.sql.ru/forum/actualthread.aspx?tid=729238
 -- Ammedments   :
 --   When         Who         What
 --   ===========  ==========  =================================================
