@@ -35,43 +35,43 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  3) Send mail with message over 32kbytes formed with BLOB
     DECLARE
       vBlob BLOB;
-  	BEGIN
-	 SELECT file_data INTO vBlob FROM FND_LOBS WHERE FILE_ID = 161005;						
-	 MAIL_PKG.ADD_ATTACHMENT( vBlob
-							 ,'MessageOver32kb.htm'
-							 ,'text/html'
-							);							
-      MAIL_PKG.SEND( 'a.ivanov@yourcomany.ru','Big message', NULL);	
-	END;
-	
+      BEGIN
+     SELECT file_data INTO vBlob FROM FND_LOBS WHERE FILE_ID = 161005;                        
+     MAIL_PKG.ADD_ATTACHMENT( vBlob
+                             ,'MessageOver32kb.htm'
+                             ,'text/html'
+                            );                            
+      MAIL_PKG.SEND( 'a.ivanov@yourcomany.ru','Big message', NULL);    
+    END;
+    
  4) Extension Email with attacments
     DECLARE
       vBlob BLOB;
     BEGIN
-	 MAIL_PKG.SET_MAILSERVER ('localhost',25);
-	 MAIL_PKG.SET_AUTH ('a.nekrasov','password');
+     MAIL_PKG.SET_MAILSERVER ('localhost',25);
+     MAIL_PKG.SET_AUTH ('a.nekrasov','password');
 
-	 -- Add attachment from file 
-	 MAIL_PKG.ADD_ATTACHMENT( 'ODPDIR'
-							 ,'girl3d.jpeg'
-							 ,'image/jpeg'
-							);
+     -- Add attachment from file 
+     MAIL_PKG.ADD_ATTACHMENT( 'ODPDIR'
+                             ,'girl3d.jpeg'
+                             ,'image/jpeg'
+                            );
 
-	 -- Add attachment from BLOB	
-	 SELECT file_data INTO vBlob FROM FND_LOBS WHERE FILE_ID = 161005;						
-	 MAIL_PKG.ADD_ATTACHMENT( vBlob
-							 ,'ReportResult.htm'
-							 ,'text/html'
-							);							
+     -- Add attachment from BLOB    
+     SELECT file_data INTO vBlob FROM FND_LOBS WHERE FILE_ID = 161005;                        
+     MAIL_PKG.ADD_ATTACHMENT( vBlob
+                             ,'ReportResult.htm'
+                             ,'text/html'
+                            );                            
 
-	 MAIL_PKG.SEND( mailto => 'A. Ivanov <a.ivanov@yourcomany.ru>, O.Petrov <o.petrov@yourcompany.ru>'
-	              , subject => 'Test subject'
-				  , message => 'Some <b>bold</b> message!'
-				  , mailfrom => 'Oracle Notify <no-reply@yourcompany.ru>'
+     MAIL_PKG.SEND( mailto => 'A. Ivanov <a.ivanov@yourcomany.ru>, O.Petrov <o.petrov@yourcompany.ru>'
+                  , subject => 'Test subject'
+                  , message => 'Some <b>bold</b> message!'
+                  , mailfrom => 'Oracle Notify <no-reply@yourcompany.ru>'
                   , mimetype => 'text/html'
-				  , priority => 1
-	              );
-	END;
+                  , priority => 1
+                  );
+    END;
     
  5) Receive emails example:
  
@@ -183,7 +183,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  --  after => str='user1@domain.ru, user2@domain.ru'
  PROCEDURE ADD_RCPT( str IN OUT VARCHAR2
                    , rcptmail IN VARCHAR2
-				   , rcptname IN VARCHAR2 DEFAULT NULL);
+                   , rcptname IN VARCHAR2 DEFAULT NULL);
 
  -- ADD_ATTACHMENT
  --  Add file-attachment to attachments list to email
@@ -194,7 +194,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  -- NAME is name for attached file for email. Default eq FILENAME
  PROCEDURE ADD_ATTACHMENT ( dirname IN varchar2
                           , filename IN varchar2
-						  , mimetype IN varchar2 DEFAULT 'text/plain'
+                          , mimetype IN varchar2 DEFAULT 'text/plain'
                           , name IN varchar2 DEFAULT NULL
                            );
  -- ADD_ATTACHMENT
@@ -205,9 +205,19 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  -- MIMETYPE is mime-type for sended file
  PROCEDURE ADD_ATTACHMENT ( blobloc IN blob
                           , filename IN varchar2
-						  , mimetype IN varchar2 DEFAULT 'text/html'
+                          , mimetype IN varchar2 DEFAULT 'text/html'
                            );
-						   
+
+ -- ADD_ATTACHMENT
+ --  Add clob-attachment to attachments list to email
+ -- IN
+ -- CLOBLOC - Clob locator for attached clob
+ -- FILENAME is name of file to attach
+ -- MIMETYPE is mime-type for sended file
+ PROCEDURE ADD_ATTACHMENT ( clobloc IN clob
+                          , filename IN varchar2
+                          , mimetype IN varchar2 DEFAULT 'text/html'
+                           );                           
  -- SEND
  --  Send email with attachments to recipient
  -- IN
@@ -219,11 +229,11 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  -- MIMETYPE is mime-type of message. Available values is 'text/plain' and 'text/html'
  -- PRIORITY is priority of mail (1 - High, 2 - Highest, 3 - Normal, 4 - Lowest, 5 - Low)
  PROCEDURE SEND ( mailto IN VARCHAR2
-				, subject IN VARCHAR2
-				, message IN CLOB
+                , subject IN VARCHAR2
+                , message IN CLOB
                 , mailfrom IN VARCHAR2 DEFAULT NULL
-				, mimetype IN VARCHAR2 DEFAULT 'text/plain'
-				, priority IN NUMBER DEFAULT NULL
+                , mimetype IN VARCHAR2 DEFAULT 'text/plain'
+                , priority IN NUMBER DEFAULT NULL
                 );
 
  FUNCTION DECODE_CHARSET (str IN VARCHAR2, charset varchar2) RETURN VARCHAR2;
@@ -232,7 +242,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
 
  FUNCTION extract_value(str IN VARCHAR2,entity IN VARCHAR2) RETURN VARCHAR2;
 
- TYPE T_HDR IS TABLE OF VARCHAR2(32717) INDEX BY VARCHAR2(2555);				
+ TYPE T_HDR IS TABLE OF VARCHAR2(32717) INDEX BY VARCHAR2(2555);                
  
  TYPE T_ATTACHMENT IS RECORD ( boundary varchar2(255)
                           , ContentTransferEncoding varchar2(25)
@@ -254,22 +264,22 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
                         ,ContentTransferEncoding varchar2(25)
                         ,charset          varchar2(25)
                         ,attachments         t_attachments := t_attachments()                                                                         
-                       );			
-					   
- TYPE MAILBOXT IS TABLE OF MESSAGE INDEX BY PLS_INTEGER;				
- MAILBOX MAILBOXT;			
- 	
+                       );            
+                       
+ TYPE MAILBOXT IS TABLE OF MESSAGE INDEX BY PLS_INTEGER;                
+ MAILBOX MAILBOXT;            
+     
  FUNCTION PARSE_LINE (line varchar2, ContentTransferEncoding varchar2, charset varchar2 default null) RETURN varchar2; 
   
  PROCEDURE MAIL_CONNECT;
  
  PROCEDURE MAIL_DISCONNECT;
- 			
- PROCEDURE GET_HEADERS;		
+             
+ PROCEDURE GET_HEADERS;        
 
- PROCEDURE GET_MAIL(mail_id number,lines number default null);	
+ PROCEDURE GET_MAIL(mail_id number,lines number default null);    
  
- PROCEDURE DELETE_MAIL(mail_id number);	
+ PROCEDURE DELETE_MAIL(mail_id number);    
  
 END MAIL_PKG;
 /
@@ -288,16 +298,17 @@ IS
  type attach_row is record ( dirname varchar2(30)
                            , filename  varchar2(30)
                            , name  varchar2(30)
-						   , mimetype varchar2(30)
-						   , blobloc blob
-						   , attachtype varchar2(30)
+                           , mimetype varchar2(30)
+                           , blobloc blob
+                           , clobloc clob
+                           , attachtype varchar2(30)
                            );
  type attach_list is table of attach_row;
  attachments attach_list;
 
  type rcpt_row is record ( rcptname varchar2(100)
                      , rcptmail varchar2(50)
-					 );
+                     );
  type rcpt_list is table of rcpt_row;
 
  PROCEDURE SET_MAILSERVER ( mailserver varchar2
@@ -321,10 +332,10 @@ IS
    -- ToDo: UTL_ENCODE.QUOTED_PRINTABLE | UTL_ENCODE.BASE64
    IF tp='B' THEN
      RETURN '=?utf-8?b?'|| UTL_RAW.cast_to_varchar2(UTL_ENCODE.base64_encode(UTL_RAW.cast_to_raw (CONVERT (SUBSTR(str,1,24), 'UTF8'))))|| '?='
-	     || CASE WHEN SUBSTR(str,25) IS NOT NULL THEN crlf || ' '|| ENCODE(SUBSTR(str,25),tp) END;
+         || CASE WHEN SUBSTR(str,25) IS NOT NULL THEN crlf || ' '|| ENCODE(SUBSTR(str,25),tp) END;
    ELSIF tp='Q' THEN
      RETURN '=?utf-8?q?' || UTL_RAW.cast_to_varchar2(utl_encode.QUOTED_PRINTABLE_ENCODE(utl_raw.cast_to_raw(CONVERT (SUBSTR(str,1,8), 'UTF8') ))) || '?='
-	     || CASE WHEN SUBSTR(str,9) IS NOT NULL THEN crlf || ' '|| ENCODE(SUBSTR(str,9),tp) END;
+         || CASE WHEN SUBSTR(str,9) IS NOT NULL THEN crlf || ' '|| ENCODE(SUBSTR(str,9),tp) END;
    ELSE
      RETURN str;
    END IF;
@@ -397,14 +408,14 @@ BEGIN
 
  PROCEDURE ADD_RCPT( str IN OUT VARCHAR2
                    , rcptmail IN VARCHAR2
-				   , rcptname IN VARCHAR2 DEFAULT NULL) IS
+                   , rcptname IN VARCHAR2 DEFAULT NULL) IS
   rcpt varchar2(255);
  BEGIN
   rcpt:=CASE WHEN rcptname is null THEN
           ' <'|| rcptmail ||'>' --rcptmail
-		ELSE
-		  trim(replace(replace(rcptname,',',' '),';',' '))||' <'|| rcptmail ||'>'
-		END;
+        ELSE
+          trim(replace(replace(rcptname,',',' '),';',' '))||' <'|| rcptmail ||'>'
+        END;
   IF trim(str) is NULL THEN
      str :=  trim(rcpt);
   ELSE
@@ -414,7 +425,7 @@ BEGIN
 
  PROCEDURE ADD_ATTACHMENT ( dirname IN varchar2
                           , filename IN varchar2
-						  , mimetype IN varchar2 DEFAULT 'text/plain'
+                          , mimetype IN varchar2 DEFAULT 'text/plain'
                           , name IN varchar2 DEFAULT NULL
                            )
  IS
@@ -426,7 +437,7 @@ BEGIN
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).filename:=filename;
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).name:=nvl(name,filename);
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).mimetype:=mimetype;
-      MAIL_PKG.attachments(MAIL_PKG.attachments.count).attachtype:='FILE';	  
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).attachtype:='FILE';      
    ELSE
       RAISE_APPLICATION_ERROR(-20001, 'File is not exists');
    END IF;
@@ -434,17 +445,28 @@ BEGIN
  
  PROCEDURE ADD_ATTACHMENT ( blobloc IN blob
                           , filename IN varchar2
-						  , mimetype IN varchar2 DEFAULT 'text/html'
+                          , mimetype IN varchar2 DEFAULT 'text/html'
                            )
  IS 
  BEGIN
       MAIL_PKG.attachments.extend;
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).name:=filename;
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).mimetype:=mimetype;
-      MAIL_PKG.attachments(MAIL_PKG.attachments.count).blobloc:=blobloc;	  
-      MAIL_PKG.attachments(MAIL_PKG.attachments.count).attachtype:='BLOB';	  
- END; 						   
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).blobloc:=blobloc;      
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).attachtype:='BLOB';      
+ END;                            
  
+ PROCEDURE ADD_ATTACHMENT ( clobloc    IN CLOB
+                          , filename   IN VARCHAR2
+                          , mimetype   IN VARCHAR2 DEFAULT 'text/html')
+ IS
+ BEGIN
+      MAIL_PKG.attachments.extend;
+      MAIL_PKG.attachments (MAIL_PKG.attachments.count).name := filename;
+      MAIL_PKG.attachments (MAIL_PKG.attachments.count).mimetype := mimetype;
+      MAIL_PKG.attachments (MAIL_PKG.attachments.count).clobloc := clobloc;
+      MAIL_PKG.attachments (MAIL_PKG.attachments.count).attachtype := 'CLOB';
+ END; 
 
  FUNCTION CREATE_RCPT_LIST(mailto IN VARCHAR2) RETURN MAIL_PKG.rcpt_list IS
   v_mailto VARCHAR2(4096) := replace(mailto,';',',')||',';
@@ -457,40 +479,41 @@ BEGIN
   LOOP
      pntr:=INSTR(v_mailto,','); buf := substr(v_mailto,1,pntr-1);
      IF pntr>0 THEN
-	   IF INSTR(buf,'<')>0 AND INSTR(buf,'>')>0 THEN
-	     rcptmail:= SUBSTR(buf,INSTR(buf,'<')+1,INSTR(SUBSTR(buf,INSTR(buf,'<')+1),'>')-1);
-		 IF rcptmail IS NOT NULL THEN
-	        rcptlist.extend;
-		    rcptlist(rcptlist.count).rcptmail := TRIM(rcptmail);
-		    rcptlist(rcptlist.count).rcptname := TRIM(SUBSTR(buf,1,INSTR(buf,'<')-1));
-	     END IF;
+       IF INSTR(buf,'<')>0 AND INSTR(buf,'>')>0 THEN
+         rcptmail:= SUBSTR(buf,INSTR(buf,'<')+1,INSTR(SUBSTR(buf,INSTR(buf,'<')+1),'>')-1);
+         IF rcptmail IS NOT NULL THEN
+            rcptlist.extend;
+            rcptlist(rcptlist.count).rcptmail := TRIM(rcptmail);
+            rcptlist(rcptlist.count).rcptname := TRIM(SUBSTR(buf,1,INSTR(buf,'<')-1));
+         END IF;
        ELSE
-	     rcptmail := TRIM(buf);
-		 IF rcptmail IS NOT NULL THEN
+         rcptmail := TRIM(buf);
+         IF rcptmail IS NOT NULL THEN
            rcptlist.extend;
-		   rcptlist(rcptlist.count).rcptmail:= TRIM(rcptmail);
-		 END IF;
-	   END IF;
-	 ELSE
-	   EXIT;
-	 END IF;
-	 v_mailto := substr(v_mailto,pntr+1);
+           rcptlist(rcptlist.count).rcptmail:= TRIM(rcptmail);
+         END IF;
+       END IF;
+     ELSE
+       EXIT;
+     END IF;
+     v_mailto := substr(v_mailto,pntr+1);
    END LOOP;
    RETURN rcptlist;
  END;
 
  PROCEDURE SEND ( mailto IN VARCHAR2
-				, subject IN VARCHAR2
-				, message IN CLOB
+                , subject IN VARCHAR2
+                , message IN CLOB
                 , mailfrom IN VARCHAR2 DEFAULT NULL
-				, mimetype IN VARCHAR2 DEFAULT 'text/plain'
-				, priority IN NUMBER DEFAULT NULL
+                , mimetype IN VARCHAR2 DEFAULT 'text/plain'
+                , priority IN NUMBER DEFAULT NULL
                 )
  IS
    v_Mail_Conn  utl_smtp.Connection;
    boundary VARCHAR2(50) := '-----7D81B75CCC90DFRW4F7A1CBD';
    vFile BFILE;
    vRAW RAW(32767);
+   vBuf VARCHAR2(32767);
    amt CONSTANT BINARY_INTEGER := 10368; -- 48bytes binary convert to 128bytes of base64. (32767/2 max for raw convert)
    v_amt BINARY_INTEGER;
    ps BINARY_INTEGER := 1;
@@ -502,9 +525,9 @@ BEGIN
    sndr MAIL_PKG.rcpt_row;
  BEGIN
     rcptlist:=create_rcpt_list(mailto);
-	IF rcptlist.count=0 THEN
+    IF rcptlist.count=0 THEN
       RAISE_APPLICATION_ERROR(-20001, 'Recipients requered');
-	END IF;
+    END IF;
     IF mimetype<>'text/html' and mimetype<>'text/plain' THEN
       RAISE_APPLICATION_ERROR(-20001, 'MimeType must be "text/html" or "text/plain"');
     ELSE
@@ -512,64 +535,64 @@ BEGIN
     END IF;
     v_Mail_Conn := utl_smtp.Open_Connection(MAIL_PKG.mailserver, MAIL_PKG.mailport);
     replies:=utl_smtp.Ehlo(v_Mail_Conn,MAIL_PKG.mailserver);
-	if create_rcpt_list(mailfrom).count>0 then
-	  sndr := create_rcpt_list(mailfrom)(1);
-	else
-	  sndr := create_rcpt_list( 'mail@' || UTL_INADDR.GET_HOST_NAME )(1); -- host from oracle-server
-	  -- sndr := create_rcpt_list( 'mail@' || substr(replies(1).text,1,instr(replies(1).text,' ')-1))(1); -- Addr from ehlo answer
+    if create_rcpt_list(mailfrom).count>0 then
+      sndr := create_rcpt_list(mailfrom)(1);
+    else
+      sndr := create_rcpt_list( 'mail@' || UTL_INADDR.GET_HOST_NAME )(1); -- host from oracle-server
+      -- sndr := create_rcpt_list( 'mail@' || substr(replies(1).text,1,instr(replies(1).text,' ')-1))(1); -- Addr from ehlo answer
     end if;
 
     if mail_pkg.auth_user is not null then
        for x IN 1 .. replies.count loop
- 	     IF INSTR(replies(x).text,'AUTH')>0 then -- If server supply authorization
+          IF INSTR(replies(x).text,'AUTH')>0 then -- If server supply authorization
             utl_smtp.command(v_Mail_Conn, 'AUTH LOGIN');
             utl_smtp.command(v_Mail_Conn,utl_raw.cast_to_varchar2(utl_encode.base64_encode(utl_raw.cast_to_raw(auth_user))));
             utl_smtp.command(v_Mail_Conn,utl_raw.cast_to_varchar2(utl_encode.base64_encode(utl_raw.cast_to_raw(auth_pass))));
-			exit;
-		 END IF;
-	   end loop;
+            exit;
+         END IF;
+       end loop;
     end if;
 
     utl_smtp.Mail(v_Mail_Conn, sndr.rcptmail);
     FOR rcpts IN 1 .. rcptlist.count
-	LOOP
-	  utl_smtp.Rcpt(v_Mail_Conn, rcptlist(rcpts).rcptmail);
-	END LOOP;
+    LOOP
+      utl_smtp.Rcpt(v_Mail_Conn, rcptlist(rcpts).rcptmail);
+    END LOOP;
 
     utl_smtp.open_data(v_Mail_Conn); -- open data sheet
     utl_smtp.write_data(v_Mail_Conn, 'Date: ' || TO_CHAR(SYSTIMESTAMP,'Dy, DD Mon YYYY HH24:MI:SS TZHTZM','NLS_DATE_LANGUAGE = ''american''') || crlf);
     utl_smtp.write_data(v_Mail_Conn, 'From: ');
-	if sndr.rcptname is not null then
+    if sndr.rcptname is not null then
         utl_smtp.write_data(v_Mail_Conn, MAIL_PKG.ENCODE(sndr.rcptname) ||' <'|| sndr.rcptmail || '>');
-	else
+    else
         utl_smtp.write_data(v_Mail_Conn, sndr.rcptmail);
-	end if;
+    end if;
     utl_smtp.write_data(v_Mail_Conn, crlf );
     utl_smtp.write_data(v_Mail_Conn, 'Subject: '|| MAIL_PKG.ENCODE(subject) || crlf );
     utl_smtp.write_data(v_Mail_Conn, 'To: ');
     FOR rcpts IN 1 .. rcptlist.count
-	LOOP
-	  if rcpts>1 then
+    LOOP
+      if rcpts>1 then
        utl_smtp.write_data(v_Mail_Conn, ',');
-	  end if;
-	  if rcptlist(rcpts).rcptname is not null then
+      end if;
+      if rcptlist(rcpts).rcptname is not null then
         utl_smtp.write_data(v_Mail_Conn, MAIL_PKG.ENCODE(rcptlist(rcpts).rcptname) ||' <'|| rcptlist(rcpts).rcptmail || '>');
-	  else
+      else
         utl_smtp.write_data(v_Mail_Conn, rcptlist(rcpts).rcptmail);
-	  end if;
-	END LOOP;
+      end if;
+    END LOOP;
     utl_smtp.write_data(v_Mail_Conn, crlf );
 
-	IF priority IS NOT NULL and priority BETWEEN 1 AND 5 THEN
+    IF priority IS NOT NULL and priority BETWEEN 1 AND 5 THEN
       utl_smtp.write_data(v_Mail_Conn, 'X-Priority: ' || priority || crlf );
-	END IF;
+    END IF;
     utl_smtp.write_data(v_Mail_Conn, 'MIME-version: 1.0' || crlf );
     utl_smtp.write_data(v_Mail_Conn, 'Content-Type: multipart/mixed;'|| crlf );
     utl_smtp.write_data(v_Mail_Conn, ' boundary="'||boundary||'"'|| crlf );
     utl_smtp.write_data(v_Mail_Conn, crlf );
  
     --Message
-	IF message IS NOT NULL THEN	
+    IF message IS NOT NULL THEN    
     utl_smtp.write_data(v_Mail_Conn, '--'|| boundary || crlf );
     utl_smtp.write_data(v_Mail_Conn, 'Content-Type: '||v_mime||'; charset="utf-8"'|| crlf );
     utl_smtp.write_data(v_Mail_Conn, 'Content-Transfer-Encoding: 8bit'|| crlf );
@@ -589,60 +612,74 @@ BEGIN
     utl_smtp.write_data(v_Mail_Conn, crlf );
     utl_smtp.write_data(v_Mail_Conn, crlf );
     END IF;
-	
-	--Attachments
-	IF MAIL_PKG.attachments.count>0 THEN
-	  FOR x IN 1 .. MAIL_PKG.attachments.count LOOP
+    
+    --Attachments
+    IF MAIL_PKG.attachments.count>0 THEN
+      FOR x IN 1 .. MAIL_PKG.attachments.count LOOP
           utl_smtp.write_data(v_Mail_Conn, '--'|| boundary || crlf );
-		  -- HOTFIX
-		  IF message IS NOT NULL OR x!=1 THEN
+          -- HOTFIX
+          IF message IS NOT NULL OR x!=1 THEN
             utl_smtp.write_data(v_Mail_Conn, 'Content-Type: '||MAIL_PKG.attachments(x).mimetype||';'|| crlf );
             utl_smtp.write_data(v_Mail_Conn, ' name="');
-	        utl_smtp.write_raw_data(v_Mail_Conn,utl_raw.cast_to_raw(MAIL_PKG.attachments(x).name));
+            utl_smtp.write_raw_data(v_Mail_Conn,utl_raw.cast_to_raw(MAIL_PKG.attachments(x).name));
             utl_smtp.write_data(v_Mail_Conn, '"' || crlf);
             utl_smtp.write_data(v_Mail_Conn, 'Content-Transfer-Encoding: base64'|| crlf );
             utl_smtp.write_data(v_Mail_Conn, 'Content-Disposition: attachment;'|| crlf );
             utl_smtp.write_data(v_Mail_Conn, ' filename="' || MAIL_PKG.ENCODE(MAIL_PKG.attachments(x).name) || '"' || crlf);
-		  ELSE
+          ELSE
            utl_smtp.write_data(v_Mail_Conn, 'Content-Type: '||MAIL_PKG.attachments(x).mimetype||'; charset="utf-8"'|| crlf );
            utl_smtp.write_data(v_Mail_Conn, 'Content-Transfer-Encoding: base64'|| crlf );
-          END IF;			
+          END IF;            
           utl_smtp.write_data(v_Mail_Conn, crlf );
-		  IF MAIL_PKG.attachments(x).attachtype = 'FILE' THEN 
+          IF MAIL_PKG.attachments(x).attachtype = 'FILE' THEN 
              vFile := BFILENAME(MAIL_PKG.attachments(x).dirname,MAIL_PKG.attachments(x).filename);
-		     dbms_lob.fileopen(vFile, dbms_lob.file_readonly);
+             dbms_lob.fileopen(vFile, dbms_lob.file_readonly);
              ps:=1; v_amt:=amt;
-		     LOOP
-		       BEGIN
-		         dbms_lob.read (vFile, v_amt, ps, vRAW);
-			     ps := ps + v_amt;
+             LOOP
+               BEGIN
+                 dbms_lob.read (vFile, v_amt, ps, vRAW);
+                 ps := ps + v_amt;
                  utl_smtp.write_raw_data(v_Mail_Conn, UTL_ENCODE.base64_encode(vRAW));
-		       EXCEPTION
+               EXCEPTION
                  WHEN no_data_found THEN
-			       EXIT;
-			   END;			
-		     END LOOP;
-		     dbms_lob.fileclose(vFile);
-		  ELSIF MAIL_PKG.attachments(x).attachtype = 'BLOB' THEN
-		  	 dbms_lob.open(MAIL_PKG.attachments(x).blobloc, dbms_lob.file_readonly);
+                   EXIT;
+               END;            
+             END LOOP;
+             dbms_lob.fileclose(vFile);
+          ELSIF MAIL_PKG.attachments(x).attachtype = 'BLOB' THEN
+               dbms_lob.open(MAIL_PKG.attachments(x).blobloc, dbms_lob.file_readonly);
              ps:=1; v_amt:=amt;
-		     LOOP
-		       BEGIN
-		         dbms_lob.read (MAIL_PKG.attachments(x).blobloc, v_amt, ps, vRAW);
-			     ps := ps + v_amt;
+             LOOP
+               BEGIN
+                 dbms_lob.read (MAIL_PKG.attachments(x).blobloc, v_amt, ps, vRAW);
+                 ps := ps + v_amt;
                  utl_smtp.write_raw_data(v_Mail_Conn, UTL_ENCODE.base64_encode(vRAW));
-		       EXCEPTION
+               EXCEPTION
                  WHEN no_data_found THEN
-			       EXIT;
-			   END;			
-		     END LOOP;
-		     dbms_lob.close(MAIL_PKG.attachments(x).blobloc);					  	 
-		  END IF;		 		  
+                   EXIT;
+               END;                           
+             END LOOP;
+             dbms_lob.close(MAIL_PKG.attachments(x).blobloc);
+          ELSIF MAIL_PKG.attachments (x).attachtype = 'CLOB' THEN
+             DBMS_LOB.open (MAIL_PKG.attachments (x).clobloc,DBMS_LOB.file_readonly);
+             ps := 1; v_amt := amt;
+             LOOP
+               BEGIN
+                 DBMS_LOB.read (MAIL_PKG.attachments (x).clobloc, v_amt, ps, vBuf);
+                 ps := ps + v_amt;
+                 UTL_SMTP.write_raw_data (v_Mail_Conn,UTL_ENCODE.base64_encode ( UTL_RAW.CAST_TO_RAW(vBuf)));
+               EXCEPTION
+                 WHEN NO_DATA_FOUND THEN
+                    EXIT;
+               END;
+             END LOOP;
+             DBMS_LOB.close (MAIL_PKG.attachments (x).clobloc);                                                       
+          END IF;                   
 
           utl_smtp.write_data(v_Mail_Conn, crlf );
           utl_smtp.write_data(v_Mail_Conn, crlf );
-	  END LOOP;
-	END IF;
+      END LOOP;
+    END IF;
 
     -- Final Boundary
     utl_smtp.write_data(v_Mail_Conn, '--' || boundary || '--');
@@ -650,18 +687,18 @@ BEGIN
     utl_smtp.close_data(v_Mail_Conn);
     utl_smtp.quit(v_Mail_Conn);
 
-	-- Clear attachments
+    -- Clear attachments
     MAIL_PKG.attachments:=MAIL_PKG.attach_list();
 
  EXCEPTION
     WHEN OTHERS THEN
        BEGIN
          MAIL_PKG.attachments:=MAIL_PKG.attach_list();
-		 utl_smtp.rset(v_Mail_Conn);
-	     utl_smtp.quit(v_Mail_Conn);
-	   EXCEPTION WHEN OTHERS THEN NULL;
-	   END;
-	RAISE;
+         utl_smtp.rset(v_Mail_Conn);
+         utl_smtp.quit(v_Mail_Conn);
+       EXCEPTION WHEN OTHERS THEN NULL;
+       END;
+    RAISE;
  END;
 
  PROCEDURE PDEBUG(mess IN varchar2, plevel IN NUMBER DEFAULT 0) IS
