@@ -10,6 +10,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
 --   22-JAN-2010  Nekrasov A.  Initial Creation
 --   11-OCT-2010  Nekrasov A.  Add Blob attachments
 --   17-SEP-2012  Nekrasov A.  Add Receive Emails
+--   22-JAN-2013  Nekrasov A.  Add Clob attachments
 -- --------------------------------------------------------------------------
 
 /* EXAMPLE:
@@ -47,6 +48,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  4) Extension Email with attacments
     DECLARE
       vBlob BLOB;
+      vClob CLOB;
     BEGIN
      MAIL_PKG.SET_MAILSERVER ('localhost',25);
      MAIL_PKG.SET_AUTH ('a.nekrasov','password');
@@ -61,6 +63,13 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
      SELECT file_data INTO vBlob FROM FND_LOBS WHERE FILE_ID = 161005;                        
      MAIL_PKG.ADD_ATTACHMENT( vBlob
                              ,'ReportResult.htm'
+                             ,'text/html'
+                            );                            
+
+     vClob := '<HTML><TITLE>Clob Attachment Example</TITLE><BODY><b>This</b> is clob attachment example</BODY></HTML>';
+     -- Add attachment from CLOB    
+     MAIL_PKG.ADD_ATTACHMENT( vClob
+                             ,'ClobResult.htm'
                              ,'text/html'
                             );                            
 
