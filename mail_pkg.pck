@@ -12,6 +12,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
 --   11-OCT-2010  Nekrasov A.  Add Blob attachments
 --   17-SEP-2012  Nekrasov A.  Add Receive Emails
 --   22-JAN-2013  Nekrasov A.  Add Clob attachments
+--   13-JUN-2013  Nekrasov A.  Add Disposition and Cid to attachments
 -- --------------------------------------------------------------------------
 
 /* EXAMPLE:
@@ -148,8 +149,13 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  DEBUG_WARNINGS CONSTANT INT := 2;
  DEBUG_ERRORS CONSTANT INT := 3; 
 
+
+ DISPOSITION_ATTACHMENT CONSTANT VARCHAR2(10) := 'attachment';
+ DISPOSITION_INLINE     CONSTANT VARCHAR2(10) := 'inline';
+
  DEBUG BOOLEAN := FALSE;
  DEBUG_LEVEL NUMBER := DEBUG_WARNINGS;
+ LAST_ATTACHMENT_ID VARCHAR2(25) := NULL;
 
  -- SET_MAILSERVER:
  --  Set up mail server for send emails. Default Localhost
@@ -206,7 +212,9 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
                           , filename IN varchar2
                           , mimetype IN varchar2 DEFAULT 'text/plain'
                           , name IN varchar2 DEFAULT NULL
+                          , disposition IN varchar2 DEFAULT DISPOSITION_ATTACHMENT                          
                            );
+                           
  -- ADD_ATTACHMENT
  --  Add blob-attachment to attachments list to email
  -- IN
@@ -216,6 +224,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  PROCEDURE ADD_ATTACHMENT ( blobloc IN blob
                           , filename IN varchar2
                           , mimetype IN varchar2 DEFAULT 'text/html'
+                          , disposition IN varchar2 DEFAULT DISPOSITION_ATTACHMENT                          
                            );
 
  -- ADD_ATTACHMENT
@@ -227,6 +236,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  PROCEDURE ADD_ATTACHMENT ( clobloc IN clob
                           , filename IN varchar2
                           , mimetype IN varchar2 DEFAULT 'text/html'
+                          , disposition IN varchar2 DEFAULT DISPOSITION_ATTACHMENT
                            );                           
  -- SEND
  --  Send email with attachments to recipient
@@ -312,6 +322,8 @@ IS
                            , blobloc blob
                            , clobloc clob
                            , attachtype varchar2(30)
+                           , contentid varchar2(25)
+                           , disposition varchar2(25) default 'attachment'
                            );
  type attach_list is table of attach_row;
  attachments attach_list;
@@ -432,11 +444,17 @@ BEGIN
      str := str||', '||trim(rcpt);
   END IF;
  END;
+ 
+ FUNCTION GENERATE_CONTENT_ID(n number) RETURN VARCHAR2 IS
+ BEGIN
+   RETURN 'mailpkg'||n||'_'||TO_CHAR(sysdate,'YYMMDD')||'.'||TO_CHAR(dbms_utility.get_time);
+ END;
 
  PROCEDURE ADD_ATTACHMENT ( dirname IN varchar2
                           , filename IN varchar2
                           , mimetype IN varchar2 DEFAULT 'text/plain'
                           , name IN varchar2 DEFAULT NULL
+                          , disposition IN varchar2 DEFAULT DISPOSITION_ATTACHMENT
                            )
  IS
   v_fl BFILE :=BFILENAME(dirname,filename);
@@ -447,7 +465,10 @@ BEGIN
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).filename:=filename;
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).name:=nvl(name,filename);
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).mimetype:=mimetype;
-      MAIL_PKG.attachments(MAIL_PKG.attachments.count).attachtype:='FILE';      
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).attachtype:='FILE';
+      LAST_ATTACHMENT_ID := GENERATE_CONTENT_ID(MAIL_PKG.attachments.count);
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).ContentId := LAST_ATTACHMENT_ID;
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).disposition := disposition;      
    ELSE
       RAISE_APPLICATION_ERROR(-20001, 'File is not exists');
    END IF;
@@ -456,6 +477,7 @@ BEGIN
  PROCEDURE ADD_ATTACHMENT ( blobloc IN blob
                           , filename IN varchar2
                           , mimetype IN varchar2 DEFAULT 'text/html'
+                          , disposition IN varchar2 DEFAULT DISPOSITION_ATTACHMENT                          
                            )
  IS 
  BEGIN
@@ -464,11 +486,17 @@ BEGIN
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).mimetype:=mimetype;
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).blobloc:=blobloc;      
       MAIL_PKG.attachments(MAIL_PKG.attachments.count).attachtype:='BLOB';      
+      LAST_ATTACHMENT_ID := GENERATE_CONTENT_ID(MAIL_PKG.attachments.count);
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).ContentId := LAST_ATTACHMENT_ID;  
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).disposition := disposition;          
+      
  END;                            
  
  PROCEDURE ADD_ATTACHMENT ( clobloc    IN CLOB
                           , filename   IN VARCHAR2
-                          , mimetype   IN VARCHAR2 DEFAULT 'text/html')
+                          , mimetype   IN VARCHAR2 DEFAULT 'text/html'
+                          , disposition IN varchar2 DEFAULT DISPOSITION_ATTACHMENT                          
+                          )
  IS
  BEGIN
       MAIL_PKG.attachments.extend;
@@ -476,6 +504,9 @@ BEGIN
       MAIL_PKG.attachments (MAIL_PKG.attachments.count).mimetype := mimetype;
       MAIL_PKG.attachments (MAIL_PKG.attachments.count).clobloc := clobloc;
       MAIL_PKG.attachments (MAIL_PKG.attachments.count).attachtype := 'CLOB';
+      LAST_ATTACHMENT_ID := GENERATE_CONTENT_ID(MAIL_PKG.attachments.count);
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).ContentId := LAST_ATTACHMENT_ID;  
+      MAIL_PKG.attachments(MAIL_PKG.attachments.count).disposition := disposition;                
  END; 
 
  FUNCTION CREATE_RCPT_LIST(mailto IN VARCHAR2) RETURN MAIL_PKG.rcpt_list IS
@@ -626,21 +657,20 @@ BEGIN
     --Attachments
     IF MAIL_PKG.attachments.count>0 THEN
       FOR x IN 1 .. MAIL_PKG.attachments.count LOOP
-          utl_smtp.write_data(v_Mail_Conn, '--'|| boundary || crlf );
-          -- HOTFIX
-          IF message IS NOT NULL OR x!=1 THEN
+            utl_smtp.write_data(v_Mail_Conn, '--'|| boundary || crlf );
+
             utl_smtp.write_data(v_Mail_Conn, 'Content-Type: '||MAIL_PKG.attachments(x).mimetype||';'|| crlf );
             utl_smtp.write_data(v_Mail_Conn, ' name="');
             utl_smtp.write_raw_data(v_Mail_Conn,utl_raw.cast_to_raw(MAIL_PKG.attachments(x).name));
             utl_smtp.write_data(v_Mail_Conn, '"' || crlf);
             utl_smtp.write_data(v_Mail_Conn, 'Content-Transfer-Encoding: base64'|| crlf );
-            utl_smtp.write_data(v_Mail_Conn, 'Content-Disposition: attachment;'|| crlf );
-            utl_smtp.write_data(v_Mail_Conn, ' filename="' || MAIL_PKG.ENCODE(MAIL_PKG.attachments(x).name) || '"' || crlf);
-          ELSE
-           utl_smtp.write_data(v_Mail_Conn, 'Content-Type: '||MAIL_PKG.attachments(x).mimetype||'; charset="utf-8"'|| crlf );
-           utl_smtp.write_data(v_Mail_Conn, 'Content-Transfer-Encoding: base64'|| crlf );
-          END IF;            
-          utl_smtp.write_data(v_Mail_Conn, crlf );
+            utl_smtp.write_data(v_Mail_Conn, 'Content-ID: '|| MAIL_PKG.attachments(x).contentid || crlf );
+            IF MAIL_PKG.attachments(x).disposition in (DISPOSITION_ATTACHMENT, DISPOSITION_INLINE) THEN            
+              utl_smtp.write_data(v_Mail_Conn, 'Content-Disposition: '||MAIL_PKG.attachments(x).disposition||';'|| crlf );
+              utl_smtp.write_data(v_Mail_Conn, ' filename="' || MAIL_PKG.ENCODE(MAIL_PKG.attachments(x).name) || '"' || crlf);
+            END IF;
+            utl_smtp.write_data(v_Mail_Conn, crlf );
+            
           IF MAIL_PKG.attachments(x).attachtype = 'FILE' THEN 
              vFile := BFILENAME(MAIL_PKG.attachments(x).dirname,MAIL_PKG.attachments(x).filename);
              dbms_lob.fileopen(vFile, dbms_lob.file_readonly);
