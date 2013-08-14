@@ -886,7 +886,7 @@ BEGIN
                    MAILBOX(mail_id).HDR(hdr_entity):='';                                    
                    hdr_entity_value := substr(answer,instr(answer,':')+2);
                  ELSE 
-                   hdr_entity_value := answer;  
+                   hdr_entity_value := substr(answer,2); 
                  END IF;
 
                  PDEBUG('HDR:'|| answer);              
@@ -937,7 +937,7 @@ BEGIN
                           MAILBOX(mail_id).attachments(MAILBOX(mail_id).attachments.last).HDR(hdr_entity):='';                                    
                           hdr_entity_value := substr(answer,instr(answer,':')+2);
                        ELSE 
-                          hdr_entity_value := answer;  
+                          hdr_entity_value := substr(answer,2); 
                        END IF;
                        MAILBOX(mail_id).attachments(MAILBOX(mail_id).attachments.last).HDR(hdr_entity):= 
                               MAILBOX(mail_id).attachments(MAILBOX(mail_id).attachments.last).HDR(hdr_entity)
