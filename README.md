@@ -134,11 +134,27 @@ BEGIN
                   );
 END;
 ```
+
+#### Пример для проверки количества писем в почтовом ящике
+
+```SQL
+    BEGIN
+       -- Задаем данные для авторизации на сервере
+       MAIL_PKG.SET_MAILSERVER ('yourmailserver.com');
+       MAIL_PKG.SET_AUTH ('a.ivanov','mypass');
+       MAIL_PKG.MAIL_CONNECT;
+       -- Если соединение прошло успешно, то сразу доступна информация о количестве писем
+       DBMS_OUTPUT.PUT_LINE('Total mails count:'||mail_pkg.mailbox.count);
+       MAIL_PKG.MAIL_DISCONNECT;       
+    END;     
+```
+
 #### Пример получения письма с вложениями    
 ```SQL
     BEGIN
        -- Если у Вас возникают проблемы, можно включить режим отладки в DBMS_OUTPUT
        -- MAIL_PKG.DEBUG := TRUE;
+       -- MAIL_PKG.DEBUG_LEVEL := MAIL_PKG.DEBUG_ALL;
        -- Задаем данные для авторизации на сервере
        MAIL_PKG.SET_MAILSERVER ('yourmailserver.com');
        MAIL_PKG.SET_AUTH ('a.ivanov','mypass');
