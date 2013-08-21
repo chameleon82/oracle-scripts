@@ -758,7 +758,8 @@ BEGIN
    status := trim(substr(answr,1,instr(answr,' ')));
    answer := substr(answr,instr(answr,' ')+1);
    if mail_pkg.debug then
-    PDEBUG('DEBUG:'||status||' '||answer,mail_pkg.debug_messages);
+    PDEBUG('CLIENT :'||command, mail_pkg.debug_messages);   
+    PDEBUG('SERVER :'||status||' '||answer,mail_pkg.debug_messages);
    end if;
    if status = '-ERR' then
      raise_application_error (-20000,answr);
