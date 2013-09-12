@@ -254,6 +254,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
                 , mailfrom IN VARCHAR2 DEFAULT NULL
                 , mimetype IN VARCHAR2 DEFAULT 'text/plain'
                 , priority IN NUMBER DEFAULT NULL
+                , cc       IN VARCHAR2 DEFAULT NULL
                 );
 
  FUNCTION DECODE_CHARSET (str IN VARCHAR2, charset varchar2) RETURN VARCHAR2;
@@ -548,6 +549,7 @@ BEGIN
                 , mailfrom IN VARCHAR2 DEFAULT NULL
                 , mimetype IN VARCHAR2 DEFAULT 'text/plain'
                 , priority IN NUMBER DEFAULT NULL
+                , cc       IN VARCHAR2 DEFAULT NULL                
                 )
  IS
    v_Mail_Conn  utl_smtp.Connection;
@@ -563,9 +565,11 @@ BEGIN
    reply UTL_SMTP.REPLY;
    replies UTL_SMTP.REPLIES;
    rcptlist MAIL_PKG.rcpt_list;
+   cclist MAIL_PKG.rcpt_list;
    sndr MAIL_PKG.rcpt_row;
  BEGIN
     rcptlist:=create_rcpt_list(mailto);
+    cclist := create_rcpt_list(cc);
     IF rcptlist.count=0 THEN
       RAISE_APPLICATION_ERROR(-20001, 'Recipients requered');
     END IF;
@@ -623,6 +627,22 @@ BEGIN
       end if;
     END LOOP;
     utl_smtp.write_data(v_Mail_Conn, crlf );
+
+    IF cclist.count>0 THEN
+    utl_smtp.write_data(v_Mail_Conn, 'CC: ');
+    FOR rcpts IN 1 .. cclist.count
+    LOOP
+      if rcpts>1 then
+       utl_smtp.write_data(v_Mail_Conn, ',');
+      end if;
+      if cclist(rcpts).rcptname is not null then
+        utl_smtp.write_data(v_Mail_Conn, MAIL_PKG.ENCODE(cclist(rcpts).rcptname) ||' <'|| cclist(rcpts).rcptmail || '>');
+      else
+        utl_smtp.write_data(v_Mail_Conn, cclist(rcpts).rcptmail);
+      end if;
+    END LOOP;
+    utl_smtp.write_data(v_Mail_Conn, crlf );
+    END IF;
 
     IF priority IS NOT NULL and priority BETWEEN 1 AND 5 THEN
       utl_smtp.write_data(v_Mail_Conn, 'X-Priority: ' || priority || crlf );
