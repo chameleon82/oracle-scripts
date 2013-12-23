@@ -155,7 +155,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
 
  DEBUG BOOLEAN := FALSE;
  DEBUG_LEVEL NUMBER := DEBUG_WARNINGS;
- LAST_ATTACHMENT_ID VARCHAR2(25) := NULL;
+ LAST_ATTACHMENT_ID VARCHAR2(32) := NULL;
 
  -- SET_MAILSERVER:
  --  Set up mail server for send emails. Default Localhost
@@ -323,7 +323,7 @@ IS
                            , blobloc blob
                            , clobloc clob
                            , attachtype varchar2(30)
-                           , contentid varchar2(25)
+                           , contentid varchar2(32)
                            , disposition varchar2(25) default 'attachment'
                            );
  type attach_list is table of attach_row;
