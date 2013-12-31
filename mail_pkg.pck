@@ -153,6 +153,9 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
  DISPOSITION_ATTACHMENT CONSTANT VARCHAR2(10) := 'attachment';
  DISPOSITION_INLINE     CONSTANT VARCHAR2(10) := 'inline';
 
+ MIME_PLAIN CONSTANT VARCHAR2(10) := 'text/plain';
+ MIME_HTML  CONSTANT VARCHAR2(10) := 'text/html';
+
  DEBUG BOOLEAN := FALSE;
  DEBUG_LEVEL NUMBER := DEBUG_WARNINGS;
  LAST_ATTACHMENT_ID VARCHAR2(32) := NULL;
@@ -292,7 +295,7 @@ CREATE OR REPLACE PACKAGE MAIL_PKG IS
      
  FUNCTION PARSE_LINE (line varchar2, ContentTransferEncoding varchar2, charset varchar2 default null) RETURN varchar2; 
   
- PROCEDURE MAIL_CONNECT;
+ PROCEDURE MAIL_CONNECT(protocol varchar2 default POP3);  
  
  PROCEDURE MAIL_DISCONNECT;
              
@@ -313,7 +316,10 @@ IS
  auth_user VARCHAR2(50);
  auth_pass VARCHAR2(50);
  crlf         VARCHAR2(2)  := utl_tcp.CRLF; -- chr(13)||chr(10);
+ protocol VARCHAR2(4) := POP3;
 
+ imap_cntr number;
+ 
  c  utl_tcp.connection;  -- TCP/IP connection to the Web server (for pop3)
 
  type attach_row is record ( dirname varchar2(30)
@@ -375,12 +381,12 @@ IS
  END;
  
  FUNCTION MIME_DECODE(str IN VARCHAR2) RETURN VARCHAR2 IS
-   strout VARCHAR2(32717);
-  buff varchar2(32717);
- text varchar2(32717);
- encode_method varchar2(1);
- charset varchar2(25);
-BEGIN
+    strout VARCHAR2(32717);
+    buff varchar2(32717);
+    text varchar2(32717);
+    encode_method varchar2(1);
+    charset varchar2(25);
+ BEGIN
   strout := str;
   LOOP
     IF instr(strout,'=?')>0 and instr(strout,'?=')>0 and instr(strout,'?=') > instr(strout,'=?') then
@@ -768,23 +774,56 @@ BEGIN
    END IF;
  END;
 
+
  PROCEDURE CMD(c in out utl_tcp.connection, command in varchar2,status out varchar2, answer out varchar2) is
    ret_val pls_integer; 
---   pc 
-   answr varchar2(32767); 
+   answr varchar2(32767);
+   
+   PROCEDURE POP3_CMD IS
+   BEGIN
+     ret_val := utl_tcp.write_line(c,command);
+     answr := utl_tcp.get_line(c, TRUE);   
+     status := trim(substr(answr,1,instr(answr,' ')));
+     answer := substr(answr,instr(answr,' ')+1);     
+ 
+     if mail_pkg.debug then
+      PDEBUG('S:'||answr);   
+      PDEBUG('DEBUG:'||status||' '||answer,mail_pkg.debug_messages);
+     end if;
+ 
+     if status = '-ERR' then
+       raise_application_error (-20000,answr);
+     end if;
+ 
+   END; 
+   
+   PROCEDURE IMAP_CMD IS
+   BEGIN
+     imap_cntr := imap_cntr + 1;
+     ret_val := utl_tcp.write_line(c, 'A'||lpad(imap_cntr,3,'0')||' '||command);
+     answr := utl_tcp.get_line(c, TRUE);      
+     status := trim(substr(answr,instr(answr,' '),instr(substr(answr,1+instr(answr,' ')),' ')  ));
+     answer := substr(answr,instr(answr,' ',1,1)+1);        
+
+     if mail_pkg.debug then
+      PDEBUG('S:'||answr);   
+      PDEBUG('DEBUG:'||status||' '||answer,mail_pkg.debug_messages);
+     end if;
+
+     if status in ('BAD','NO') then
+      raise_application_error (-20000,answr);
+     end if;
+
+   END;
+   
  begin
-   ret_val := utl_tcp.write_line(c,command);
-   answr := utl_tcp.get_line(c, TRUE);
-   status := trim(substr(answr,1,instr(answr,' ')));
-   answer := substr(answr,instr(answr,' ')+1);
-   if mail_pkg.debug then
-    PDEBUG('CLIENT :'||command, mail_pkg.debug_messages);   
-    PDEBUG('SERVER :'||status||' '||answer,mail_pkg.debug_messages);
-   end if;
-   if status = '-ERR' then
-     raise_application_error (-20000,answr);
-   end if;
- end;
+   PDEBUG('C:'||command); 
+   CASE MAIL_PKG.protocol 
+     WHEN MAIL_PKG.POP3 THEN POP3_CMD;
+     WHEN MAIL_PKG.IMAP THEN IMAP_CMD;
+   END CASE;
+ end; 
+ 
  
  FUNCTION PARSE_LINE (line varchar2, ContentTransferEncoding varchar2, charset varchar2 default null) RETURN varchar2 IS
   decoding_line varchar2(255);
@@ -805,48 +844,86 @@ BEGIN
  END;
  
  
- PROCEDURE MAIL_CONNECT IS
+ PROCEDURE MAIL_CONNECT(protocol varchar2 default POP3) IS
   p_ip varchar2(25);
   answer varchar2(32767);
   status varchar2(25);
   cnt number;
-  bytes number;         
+  bytes number;
+  
+  PROCEDURE POP3_CONNECT IS 
+  BEGIN
+    c := utl_tcp.open_connection(remote_host => p_ip,
+                                 remote_port =>  110,
+                                 charset     => 'US7ASCII',
+                                 tx_timeout => 10); 
+    answer := utl_tcp.get_line(c, TRUE); 
+    PDEBUG(answer,mail_pkg.debug_messages); 
+
+    CMD(c,'USER '||MAIL_PKG.auth_user,status,answer);  
+    CMD(c,'PASS '||MAIL_PKG.auth_pass,status,answer);
+    
+    CMD(c,'STAT',status,answer);
+    cnt := to_number(trim(substr(answer,1,instr(answer,' '))));
+    bytes := to_number(trim(substr(answer,instr(answer,' ')))); 
+
+  END;   
+
+  PROCEDURE IMAP_CONNECT IS
+  BEGIN
+    imap_cntr := 0;
+    c := utl_tcp.open_connection(remote_host => p_ip,
+                                 remote_port =>  143,
+                                 charset     => 'US7ASCII',
+                                 tx_timeout => 10); 
+    answer := utl_tcp.get_line(c, TRUE); 
+    PDEBUG(answer,mail_pkg.debug_messages);  
+  
+    CMD(c,'LOGIN '||MAIL_PKG.auth_user||' '||MAIL_PKG.auth_pass,status,answer);
+    CMD(c,'SELECT INBOX',status,answer);    
+    cnt := to_number(trim(substr(answer,1,instr(answer,' '))));
+    bytes := 0;
+    CMD(c,'STATUS INBOX (UIDNEXT MESSAGES)',status,answer);
+  END;
+       
  BEGIN
+  MAIL_PKG.protocol := protocol;
+  IF MAIL_PKG.protocol NOT IN (MAIL_PKG.POP3, MAIL_PKG.IMAP) THEN
+    RAISE_APPLICATION_ERROR(-20001,'Protocol '||protocol||' is not supported');
+  END IF;
+
   p_ip := UTL_INADDR.GET_HOST_ADDRESS(mailserver);
-  c := utl_tcp.open_connection(remote_host => p_ip,
-                               remote_port =>  110,
-                               charset     => 'US7ASCII',
-                               tx_timeout => 10);  -- open connection
-  answer := utl_tcp.get_line(c, TRUE); 
-  PDEBUG(answer,mail_pkg.debug_messages);  -- read result
-  CMD(c,'USER '||MAIL_PKG.auth_user,status,answer);  
-  CMD(c,'PASS '||MAIL_PKG.auth_pass,status,answer);
- BEGIN
-  CMD(c,'STAT',status,answer);
-  cnt := to_number(trim(substr(answer,1,instr(answer,' '))));
-  bytes := to_number(trim(substr(answer,instr(answer,' ')))); 
-  -- INIT ARRAY
+    
+  CASE MAIL_PKG.protocol
+    WHEN MAIL_PKG.POP3 THEN POP3_CONNECT;
+    WHEN MAIL_PKG.IMAP THEN IMAP_CONNECT;
+  END CASE;
+      
   MAILBOX.DELETE;
   FOR mail_id IN 1 .. cnt  
   LOOP
        MAILBOX(mail_id).bytes := 0;        
   END LOOP;
- END;
     
  END;
  
- PROCEDURE MAIL_DISCONNECT IS
+  PROCEDURE MAIL_DISCONNECT IS
   answer varchar2(32767); 
   status varchar2(25); 
  BEGIN
-   CMD(c,'QUIT',status,answer);  
+   CASE MAIL_PKG.protocol
+   WHEN MAIL_PKG.POP3 THEN
+     CMD(c,'QUIT',status,answer);
+   WHEN MAIL_PKG.IMAP THEN
+     CMD(c,'LOGOUT',status,answer);  
+   END CASE; 
    utl_tcp.close_connection(c);
  EXCEPTION WHEN OTHERS THEN
-  BEGIN   
-    utl_tcp.close_connection(c);
-  EXCEPTION WHEN OTHERS THEN NULL;
-  END;    
-  RAISE;
+   BEGIN   
+     utl_tcp.close_connection(c);
+   EXCEPTION WHEN OTHERS THEN NULL;
+   END;    
+   RAISE;
  END;
 
  PROCEDURE GET_HEADERS IS 
@@ -855,14 +932,22 @@ BEGIN
   cnt number;
   bytes number;     
  BEGIN
-  CMD(c,'STAT',status,answer);
-  cnt := to_number(trim(substr(answer,1,instr(answer,' '))));
-  bytes := to_number(trim(substr(answer,instr(answer,' ')))); 
-  -- GET MESSAGE SUBJECTS
-  FOR mail_id IN 1 .. cnt -- cnt --1 ..  cnt 
-  LOOP
-       GET_MAIL(mail_id,0);   -- ,0 !!!!!        
-  END LOOP;
+ 
+  CASE MAIL_PKG.protocol
+    WHEN MAIL_PKG.POP3 THEN
+        CMD(c,'STAT',status,answer);
+        cnt := to_number(trim(substr(answer,1,instr(answer,' '))));
+        --bytes := to_number(trim(substr(answer,instr(answer,' ')))); 
+        FOR mail_id IN 1 .. cnt 
+        LOOP
+            GET_MAIL(mail_id,0);         
+        END LOOP;
+    --WHEN MAIL_PKG.IMAP THEN 
+     --   NULL;
+        -- ToDo
+    ELSE 
+      RAISE_APPLICATION_ERROR(-20000,'This feauture is not realised yet in proto '||MAIL_PKG.protocol);        
+  END CASE; 
  END;
 
  
@@ -880,7 +965,10 @@ BEGIN
   any_boundary_found boolean:=false;
   any_boundary_found_close boolean:=false;
  BEGIN     
- 
+       IF MAIL_PKG.protocol != MAIL_PKG.POP3 THEN
+        RAISE_APPLICATION_ERROR(-20000,'This feauture is not realised yet in proto '||MAIL_PKG.protocol);  
+       END IF;
+       
        CMD(c,'LIST '||mail_id,status,answer); -- get message size
        MAILBOX(mail_id).bytes:=to_number(trim(substr(answer,instr(answer,' '))));
 
@@ -1025,13 +1113,19 @@ BEGIN
           EXCEPTION WHEN OTHERS THEN NULL; END;   
        END IF;     
  END;
- 
+  
  PROCEDURE DELETE_MAIL(mail_id number) IS
   answer varchar2(32767);
   status varchar2(25);  
  BEGIN
-   CMD(c,'DELE '||mail_id,status,answer); 
- END;  
+ 
+   CASE MAIL_PKG.protocol
+     WHEN MAIL_PKG.POP3 THEN 
+       CMD(c,'DELE '||mail_id,status,answer);
+   ELSE 
+       RAISE_APPLICATION_ERROR(-20000,'This feauture is not realised yet in proto '||MAIL_PKG.protocol);          
+   END CASE;        
+ END;   
     
 BEGIN
   MAIL_PKG.attachments:=MAIL_PKG.attach_list();
