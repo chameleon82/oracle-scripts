@@ -322,9 +322,9 @@ IS
  
  c  utl_tcp.connection;  -- TCP/IP connection to the Web server (for pop3)
 
- type attach_row is record ( dirname varchar2(30)
-                           , filename  varchar2(30)
-                           , name  varchar2(30)
+ type attach_row is record ( dirname varchar2(255)
+                           , filename  varchar2(255)
+                           , name  varchar2(255)
                            , mimetype varchar2(30)
                            , blobloc blob
                            , clobloc clob
