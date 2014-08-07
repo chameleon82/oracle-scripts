@@ -333,7 +333,7 @@ IS
                            , disposition varchar2(25) default 'attachment'
                            );
  type attach_list is table of attach_row;
- attachments attach_list;
+ attachments attach_list := attach_list();
 
  type rcpt_row is record ( rcptname varchar2(100)
                      , rcptmail varchar2(50)
