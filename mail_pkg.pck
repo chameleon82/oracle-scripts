@@ -609,6 +609,10 @@ IS
     LOOP
       utl_smtp.Rcpt(v_Mail_Conn, rcptlist(rcpts).rcptmail);
     END LOOP;
+    FOR rcpts IN 1 .. cclist.count
+    LOOP
+      utl_smtp.Rcpt(v_Mail_Conn, cclist(rcpts).rcptmail);
+    END LOOP;
 
     utl_smtp.open_data(v_Mail_Conn); -- open data sheet
     utl_smtp.write_data(v_Mail_Conn, 'Date: ' || TO_CHAR(SYSTIMESTAMP,'Dy, DD Mon YYYY HH24:MI:SS TZHTZM','NLS_DATE_LANGUAGE = ''american''') || crlf);
