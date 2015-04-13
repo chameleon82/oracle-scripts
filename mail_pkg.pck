@@ -666,20 +666,19 @@ IS
     IF message IS NOT NULL THEN    
     utl_smtp.write_data(v_Mail_Conn, '--'|| boundary || crlf );
     utl_smtp.write_data(v_Mail_Conn, 'Content-Type: '||v_mime||'; charset="utf-8"'|| crlf );
-    utl_smtp.write_data(v_Mail_Conn, 'Content-Transfer-Encoding: 8bit'|| crlf );
+    utl_smtp.write_data(v_Mail_Conn, 'Content-Transfer-Encoding: base64'|| crlf );
     utl_smtp.write_data(v_Mail_Conn, crlf );
-    -- utl_smtp.write_raw_data(v_Mail_Conn, utl_raw.cast_to_raw(CONVERT(message,'UTF8')));
-    ps:=1; v_amt:=amt;
+    ps := 1; v_amt := amt;
     LOOP
       BEGIN
-        dbms_lob.read(message, v_amt, ps, message_part);
+        dbms_lob.read(message, v_amt, ps, vBuf);
         ps := ps + v_amt;
-        utl_smtp.write_raw_data(v_Mail_Conn, utl_raw.cast_to_raw(CONVERT(message_part,'UTF8')));                 
+        utl_smtp.write_raw_data (v_Mail_Conn,utl_encode.base64_encode ( utl_raw.cast_to_raw(convert(vBuf,'UTF8'))));
       EXCEPTION
         WHEN no_data_found THEN
-             EXIT;
-      END;            
-    END LOOP; 
+            EXIT;
+      END;
+    END LOOP;
     utl_smtp.write_data(v_Mail_Conn, crlf );
     utl_smtp.write_data(v_Mail_Conn, crlf );
     END IF;
