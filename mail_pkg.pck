@@ -563,7 +563,7 @@ IS
    vFile BFILE;
    vRAW RAW(32767);
    vBuf VARCHAR2(32767);
-   amt CONSTANT BINARY_INTEGER := 10368; -- 48bytes binary convert to 128bytes of base64. (32767/2 max for raw convert)
+   amt CONSTANT BINARY_INTEGER := 13440; -- 48bytes binary convert to 128bytes of base64. (32767/2 max for raw convert)
    v_amt BINARY_INTEGER;
    ps BINARY_INTEGER := 1;
    message_part varchar2(32767);
