@@ -3,15 +3,15 @@ oracle-scripts
 
 Oracle PL/SQL package extensions
 
-## Примеры работы с пакетом MAIL_PKG
+## How to use MAIL_PKG
 
-#### Быстрая отправка текстового сообщения
+#### Short example
 ```SQL
   BEGIN
       MAIL_PKG.SEND( 'a.ivanov@yourcomany.ru','Test subject', 'Some message!');
   END;
 ```  
-#### Отправка сообщения размером более 32 килобайт
+#### Send text body more than 32kb
 ```SQL
     DECLARE
       v clob:='Some text message over 32kb'||chr(10)||chr(13);
@@ -19,14 +19,14 @@ Oracle PL/SQL package extensions
                      ||' The quick brown fox jumps over the lazy dog. '
                      ||' The quick brown fox jumps over the lazy dog. '||chr(10)||chr(13);
     BEGIN
-      -- Генерируем сообщение размером более 32 тыс символов
+      -- Make text more than 32kb symbols
       for x in 1..300 loop
         v:=v||to_char(x)||' '||t;
       end loop;
       MAIL_PKG.SEND( 'a.ivanov@yourcompany.ru','Test subject', v);
     END ;
 ```
-#### Отправка сообщения с файлом BLOB, выбранным из Базы данных
+#### Send email with BLOB attachment which can be selected from table
 ```SQL
     DECLARE
       vBlob BLOB;
@@ -39,44 +39,44 @@ Oracle PL/SQL package extensions
       MAIL_PKG.SEND( 'a.ivanov@yourcomany.ru','Big message', NULL);
     END;
 ```
-#### Расширенный пример отправки сообщения с несколькими вложениями(FILE,CLOB,BLOB)
+#### Extended example with few attachements (FILE,CLOB,BLOB)
 ```SQL
     DECLARE
       vBlob BLOB;
       vClob CLOB;
     BEGIN
-     -- Устанавливаем почтовый сервер для отправки почты, отличный от localhost:25
+     -- Setup connection to mail server localhost:25
      MAIL_PKG.SET_MAILSERVER ('localhost',25);
-     -- Устанавливаем данные для авторизации на почтовом сервере
+     -- Set mail authentication 
      MAIL_PKG.SET_AUTH ('a.nekrasov','password');
 
-     -- Добавляем изображение, находящееся в рабочей папке сервера
-     -- Список алиасов директорий можно узнать запросом SELECT * FROM DBA_DIRECTORIES
-     MAIL_PKG.ADD_ATTACHMENT( 'MY_DIR_ALIAS' -- Алиас директории
-                             ,'logo.jpeg'    -- Имя файла в директории (такое же будет во вложении)
-                             ,'image/jpeg'   -- mime тип данных вложения
+     -- Attach image from local server directory
+     -- Directory alliases can be listed with next query SELECT * FROM DBA_DIRECTORIES
+     MAIL_PKG.ADD_ATTACHMENT( 'MY_DIR_ALIAS' -- Directory alias
+                             ,'logo.jpeg'    -- Directory file name (Will be the same in the attachment)
+                             ,'image/jpeg'   -- Mime type of the attachment
                             );
 
-     -- Добавляем BLOB, выбранный из базы данных
+     -- Attach BLOB selected from DataBase
      SELECT file_data INTO vBlob FROM FND_LOBS WHERE FILE_ID = 161005;
      MAIL_PKG.ADD_ATTACHMENT( vBlob
-                             ,'ReportResult.htm'  -- Имя файла, которое будет во вложении
-                             ,'text/html'         -- mime тип данных вложения
+                             ,'ReportResult.htm'  -- File name in the attachment
+                             ,'text/html'         -- Mime type of the attachment
                             );
 
-     -- Добавляем предварительно подготовленный CLOB
+     -- Attach prepared CLOB
      vClob := '<HTML><TITLE>Clob Attachment Example</TITLE><BODY><b>This</b> is clob attachment example</BODY></HTML>';
      MAIL_PKG.ADD_ATTACHMENT( vClob
-                             ,'ClobResult.htm'    -- Имя файла, которое будет во вложении
-                             ,'text/html'         -- mime тип данных вложения
+                             ,'ClobResult.htm'    -- File name in the attachment
+                             ,'text/html'         -- Mime type of the attachment
                             );
-     -- Отправляем 
-     -- mailto - список адресов, на которые мы отправляем почту, могут быть в любом допустимом формате
-     -- subject - тема письма
-     -- message - Основное сообщение письма (CLOB)
-     -- mailfrom - Емайл отправителя
-     -- mimetype - Тип сообщения письма, допустимы text/html и text/plain (по умолчанию)
-     -- priority - Приоритет сообщения от 1 до 5, 1 - самый высокий, 3 - по умолчанию
+     -- Send email 
+     -- mailto - List of recepients. Simple `a.ivanov@yourcomany.ru` and full `A. Ivanov <a.ivanov@yourcomany.ru>` formats allowed
+     -- subject - Mail subject
+     -- message - Text body (CLOB)
+     -- mailfrom - Sender email
+     -- mimetype - Text body mime type,  text/html and text/plain (by default) is allowed
+     -- priority - Message priority from 1 to 5, 1 - the highest, 3 - default
      MAIL_PKG.SEND( mailto => 'A. Ivanov <a.ivanov@yourcomany.ru>, O.Petrov <o.petrov@yourcompany.ru>'
                   , subject => 'Test subject'
                   , message => 'Some <b>bold</b> message!'
@@ -86,10 +86,10 @@ Oracle PL/SQL package extensions
                   );
     END;
 ```    
-#### Пример с вложением изображения, отображаемого в теле сообщения письма
+#### Example with image printed in the text body 
 ```SQL
 DECLARE
- -- Преобразуем для примера логотип в CLOB
+ -- Convert logo into CLOB
  vClob CLOB :=  UTL_RAW.CAST_TO_VARCHAR2(UTL_ENCODE.base64_decode(UTL_RAW.CAST_TO_RAW(
   'R0lGODlhbgAeAPQAAPFTfP7y9f3j6vBFce0oW/vV3/m4yfR/nfBTe+43Zvebs/Jih/Nwku0oWviq' 
 ||'vvrF0/epvf3w9PFhhvzi6e42ZfR+nPvU3vNvkfaasu9EcPm3yPWMp/aNqPrG1OwaUP///yH/C01T'
@@ -110,104 +110,102 @@ DECLARE
 ||'4g+IouqqDPGs+gMBWL76aqyyBmrrrp64VmouvAbbQThXAJBpsMHeQqwKAxxQK7KbhgAAOw=='
 )) )
 ;
- v_id varchar2(25); -- Идентификатор логотипа в письме
+ v_id varchar2(25); -- Logo file must have ID to locate it in the text
 BEGIN
-     -- Добавляем логотип к письму
-     -- Указываем disposition = MAIL_PKG.DISPOSITION_INLINE
-     -- чтобы логотип не отображался во вложениях письма
-     MAIL_PKG.ADD_ATTACHMENT( vClob -- дата
-                             ,'logo.gif' -- имя файла в письме
-                             ,'image/gif' -- mime тип
+     -- Attach logo to the email
+     -- disposition = MAIL_PKG.DISPOSITION_INLINE -- We don't want to have this file available as an attachment
+     MAIL_PKG.ADD_ATTACHMENT( vClob -- logo byte data
+                             ,'logo.gif' -- File name in the email
+                             ,'image/gif' -- Mime type of the attachment
                              , disposition => MAIL_PKG.DISPOSITION_INLINE
                             );
-     -- получаем идентификатор логотипа из вложений                            
+     -- Retrieve attached file ID                     
      v_id := MAIL_PKG.LAST_ATTACHMENT_ID;
 
-     -- Отправляем письмо, указав mimetype = text/html
-     -- Конструкцией <img src="cid:'|| v_id || '">
-     -- ссылаемся на аттач изображения
+     -- Send email with mimetype = text/html
+     -- and put image there <img src="cid:'|| v_id || '">
+     -- should point to the attached image
      MAIL_PKG.SEND( mailto => 'A Ivanov <a.ivanov@yourcompany.ru>'
-                  , subject => 'Письмо с логотипом'
-                  , message => 'Я летаю авиакомпанией  <img src="cid:'|| v_id || '">'                  
-                  , mailfrom => 'Уведомление <no-reply@yourcompany.ru>'
+                  , subject => 'Email with Logo in the text'
+                  , message => 'I fly with <img src="cid:'|| v_id || '">'                  
+                  , mailfrom => 'Notification <no-reply@yourcompany.ru>'
                   , mimetype => 'text/html'
                   );
 END;
 ```
 
-#### Пример для проверки количества писем в почтовом ящике
+#### Example with checking number of available emails in a mailbox
 
 ```SQL
     BEGIN
-       -- Задаем данные для авторизации на сервере
+       -- Set credentials
        MAIL_PKG.SET_MAILSERVER ('yourmailserver.com');
        MAIL_PKG.SET_AUTH ('a.ivanov','mypass');
        MAIL_PKG.MAIL_CONNECT;
-       -- Если соединение прошло успешно, то сразу доступна информация о количестве писем
+       -- Now it possible to call Count method
        DBMS_OUTPUT.PUT_LINE('Total mails count:'||mail_pkg.mailbox.count);
        MAIL_PKG.MAIL_DISCONNECT;       
     END;     
 ```
 
-#### Пример получения письма с вложениями    
+#### Example to collect emails with attachements (Experimental)
 ```SQL
     BEGIN
-       -- Если у Вас возникают проблемы, можно включить режим отладки в DBMS_OUTPUT
+       -- Enable debug if needed DBMS_OUTPUT
        -- MAIL_PKG.DEBUG := TRUE;
        -- MAIL_PKG.DEBUG_LEVEL := MAIL_PKG.DEBUG_ALL;
-       -- Задаем данные для авторизации на сервере
+       -- Set credentials
        MAIL_PKG.SET_MAILSERVER ('yourmailserver.com');
        MAIL_PKG.SET_AUTH ('a.ivanov','mypass');
-       -- Устанавливаем соединение с сервером
+       -- Connect to the server
        MAIL_PKG.MAIL_CONNECT;
-       -- Если соединение прошло успешно, то сразу доступна информация о количестве писем
+       -- Count available emails
        DBMS_OUTPUT.PUT_LINE('Total mails count:'||mail_pkg.mailbox.count);
-       -- Можно получить заголовки для всех писем
-       -- они будут доступны в массиве mail_pkg.mailbox
+       -- All headers of all emails can collect into array under mail_pkg.mailbox
        -- MAIL_PKG.GET_HEADERS;
        
-       -- В примере получим последние 10 писем
+       -- Example to collect last 10 emails
        FOR i IN 1..LEAST(10,mail_pkg.mailbox.count) LOOP
-         -- Получаем информацию о письме и заголовок письма
-         -- Для этого вторым параметром указываем 0 - т.е. текст самого письма запрашивать не будем
+         -- Get info and mail header
+         -- for this second parameter should be 0 - i.e. to not collect mail boby
          MAIL_PKG.GET_MAIL(i,0);
-         -- Выводим информацию о размере письма, отправителе и теме письма
+         -- Print email size and topic info
          DBMS_OUTPUT.PUT_LINE('MAIL:'||i || ' (' ||trunc(mail_pkg.mailbox(i).bytes/1024) || 'Kbytes) From:'||mail_pkg.mailbox(i).MailFrom
                               ||' Subject:'||mail_pkg.mailbox(i).Subject
                               );
              
-         -- Bug: На данный момент пакет не справляется с обработкой писем размером более 1 Мб     
+         -- Bug: It's not possible to collect emails with attachement size more than 1 Мб     
          IF mail_pkg.mailbox(i).bytes>1000000 THEN
-           -- Поэтому в примере мы просто удалим все письма из этих 10-ти, у которых размер более 1 Мб
+           -- So in that example we just delete that kind of emails
            MAIL_PKG.DELETE_MAIL(i);
          ELSE
          
-         -- Еще раз запрашиваем информацию о письме и полный текст сообщения
+         -- Collect full email with body
          MAIL_PKG.GET_MAIL(i);
-         -- Выводим Текст письма и количество вложений
+         -- Print body and number of attachements
          DBMS_OUTPUT.PUT_LINE(substr(' Text:' ||mail_pkg.mailbox(i).message,1,255) );
          DBMS_OUTPUT.PUT_LINE(' Attachments:' ||mail_pkg.mailbox(i).attachments.count);
 
-         -- Перебираем вложения
+         -- Iterate attachements
            IF mail_pkg.mailbox(i).attachments.count>0 THEN
              FOR att IN 1..mail_pkg.mailbox(i).attachments.count LOOP
-               -- Определяем вложения, помеченные в письме именно как вложения
+               -- Check attachements marked as attachement (not interested in inline dispositions)
                IF mail_pkg.mailbox(i).attachments(att).hdr.exists('Content-Disposition')
                  AND INSTR(mail_pkg.mailbox(i).attachments(att).hdr('Content-Disposition'),'attachment')>0
                THEN
-                 -- Выводим в консоль имя файла и размер
+                 -- Print file name and it's size
                  DBMS_OUTPUT.PUT_LINE(' filename: '
                     ||mail_pkg.extract_value(mail_pkg.mailbox(i).attachments(att).hdr('Content-Disposition'),'filename')
                     ||', about '||trunc(dbms_lob.getlength(mail_pkg.mailbox(i).attachments(att).content)/1024) ||'Kbytes'
                    );
-                 -- Сам контент представлен в виде CLOB
-                 -- Его можно преобразовать в BLOB, сохранить в базу данных или на диск
+                 -- File context avaiable as  CLOB
+                 -- It possible to convert into BLOB and save into DB or on Disk
                  -- mail_pkg.mailbox(i).attachments(att).content
                END IF;
-               -- Определяем, является ли вложение текстовым файлом
+               -- Check if attachement is a text file
                IF mail_pkg.mailbox(i).attachments(att).hdr.exists('Content-Type') THEN
                  IF INSTR(mail_pkg.mailbox(i).attachments(att).hdr('Content-Type'),'text')>0 THEN
-                   -- Если да - показываем его текст в консоли
+                   -- If true - print it
                    DBMS_OUTPUT.PUT_LINE(substr(' PreviewAttachmentText:' ||mail_pkg.mailbox(i).attachments(att).content,1,255) );
                  END IF;
                END IF;
@@ -216,15 +214,13 @@ END;
          END IF;
        END LOOP;
 
-       -- После того, как закончили работу с почтой, необходимо отключиться от сервера   
-       -- В реально работающем приложении во избежание ошибок в работе с почтовым сервером
-       -- рекомендуется сначала считать все необходимые данные и отключиться, а потом работать
-       -- с массивом mail_pkg.mailbox
+       -- Must disconnect after work with server is finished
+       -- In real code it is recommended to collect emails into mail_pgk.mailbox and disconnect
+       -- And then continue to work with mail_pgk.mailbox array
        MAIL_PKG.MAIL_DISCONNECT;
 
     EXCEPTION WHEN OTHERS THEN
-      -- Если во время работы приложения произошла фатальная ошибка - необходимо дать почтовому 
-      -- серверу команду на отключение, иначе будет повисшее соединение
+      -- Must termitate connection otherwise connection will leak
       MAIL_PKG.MAIL_DISCONNECT;
     END;
 ```
